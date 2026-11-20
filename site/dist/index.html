@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#112822">
+  <title>Procure Pilot · Distributor workspace</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="data.js"></script>
+  <script defer src="device-draft.js"></script>
+  <script defer src="intelligence.js"></script>
+  <script defer src="leads.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#workspace">Skip to workspace</a>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="#overview">
+        <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none"><path d="m5 12 18-7-7 18-3-8-8-3Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="m13 15 5-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+        <span>Procure<span> Pilot</span><small>Distributor workspace</small></span>
+      </a>
+      <nav class="nav" aria-label="Workspace">
+        <div class="nav-label">Operations</div>
+        <a href="#overview" data-view="overview" data-icon="overview">Decision desk</a>
+        <a href="#inbox" data-view="inbox" data-icon="inbox">Action inbox <span id="inbox-count"></span></a>
+        <a href="#fulfilment" data-view="fulfilment" data-icon="parcel">Fulfilment</a>
+        <div class="nav-label nav-divider">Research</div>
+        <a href="#intelligence" data-view="intelligence" data-icon="document">Document intelligence</a>
+        <a href="#leads" data-view="leads" data-icon="search">Lead discovery</a>
+      </nav>
+      <div class="sidebar-foot"><span class="live-dot"></span><div>Demo workspace<small>Fictional operational records</small></div></div>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <span class="breadcrumb">Workspace <span aria-hidden="true">/</span> <strong id="breadcrumb"></strong></span>
+        <span class="topbar-right"><span class="timezone">IST · UTC+05:30</span><span class="avatar" aria-hidden="true">PP</span></span>
+      </header>
+      <main id="workspace" tabindex="-1"></main>
+    </div>
+  </div>
+  <div id="notice" role="status" aria-live="polite"></div>
+  <noscript>Enable JavaScript to use the demo workspace.</noscript>
+</body>
+</html>

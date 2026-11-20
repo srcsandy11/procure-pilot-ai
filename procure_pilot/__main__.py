@@ -12,6 +12,17 @@ STAGES = {
 }
 
 
+def replay(read, order_id, stages):
+    rows = []
+    for stage, timestamp in stages.items():
+        as_of = instant(timestamp)
+        order, plans, offers, split = read(order_id, as_of)
+        for plan, legs in plans.items():
+            decision = evaluate(order, legs, offers, split, as_of)
+            rows.append(dict(stage=stage, order=order_id, plan=plan, as_of=timestamp, **asdict(decision)))
+    return rows
+
+
 def main():
     parser = argparse.ArgumentParser(description="Evaluate dated supply evidence for a fictional order")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -33,13 +44,7 @@ def main():
         return
     read = postgres_snapshot if args.store == "postgres" else fixture_snapshot
     stages = STAGES if args.stage == "all" else {args.stage: STAGES[args.stage]}
-    rows = []
-    for stage, timestamp in stages.items():
-        as_of = instant(timestamp)
-        order, plans, offers, split = read(args.order, as_of)
-        for plan, legs in plans.items():
-            decision = evaluate(order, legs, offers, split, as_of)
-            rows.append(dict(stage=stage, order=args.order, plan=plan, as_of=timestamp, **asdict(decision)))
+    rows = replay(read, args.order, stages)
     if args.json:
         print(json.dumps(rows, indent=2))
         return

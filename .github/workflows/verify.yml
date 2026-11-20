@@ -7,7 +7,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 25
     services:
       database:
         image: pgvector/pgvector:pg16
@@ -22,6 +22,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:integration-test@localhost:5432/procure_test
       PROCURE_TEST_POSTGRES: "1"
+      PROCURE_TEST_WORKFLOW_RESET: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -41,3 +42,69 @@ jobs:
         run: |
           python -m unittest discover -s tests -v
           python -m procure_pilot demo --store postgres --stage revised --json
+          python -m procure_pilot.benchmark
+      - name: Exercise durable review handoff across processes
+        run: |
+          python -m procure_pilot.review_graph start --thread ci-review > review-start.json
+          python -m procure_pilot.review_graph status --thread ci-review > review-status.json
+          python -m procure_pilot.review_graph resume --thread ci-review --action reject --reviewer CI > review-end.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          start, status, end = (json.loads(Path(f"review-{stage}.json").read_text())
+                                for stage in ("start", "status", "end"))
+          assert start == status and start["next"] == ["review"], (start, status)
+          assert start["state"]["status"] == "pending", start
+          assert end["state"]["review_id"] == start["state"]["review_id"], end
+          assert end["state"]["status"] == "rejected" and not end["next"], end
+          PY
+      - name: Start local Ollama and pull small test models
+        run: |
+          docker run -d --name procure-ollama -p 127.0.0.1:11434:11434 ollama/ollama
+          curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-connrefused http://127.0.0.1:11434/api/tags
+          docker exec procure-ollama ollama pull qwen2.5:0.5b
+          docker exec procure-ollama ollama pull all-minilm
+      - name: Verify local model generation, structured extraction, and pgvector
+        run: |
+          python - <<'PY'
+          from procure_pilot.intelligence import ollama_answer, retrieve, structured_extract
+          from procure_pilot.vector_search import compare
+
+          question = "What is the customer split approval?"
+          context = retrieve(question, "SO-1001", limit=1)
+          assert [doc["id"] for doc in context] == ["CUSTOMER-ACK-1"], context
+          answer = ollama_answer(question, context, "qwen2.5:0.5b")
+          assert isinstance(answer, str) and answer.strip(), answer
+
+          source = "Order SO-1001 requests quantity: 80 units."
+          terms = structured_extract(source, "qwen2.5:0.5b")
+          assert set(terms) == {"order_id", "model", "quantity", "arrival", "certificate"}, terms
+          assert any((terms[key] or {}).get("value") == expected for key, expected in
+                     (("order_id", "SO-1001"), ("quantity", "80"))), terms
+          for fact in (fact for fact in terms.values() if fact is not None):
+              assert fact["span"] in source and fact["value"] in fact["span"], terms
+
+          for model in (None, "all-minilm"):
+              query = "split approval"
+              results = compare(query, model=model)
+              assert results["keyword"] and results["vector"], results
+              if model:
+                  assert results["encoder"] == "ollama/all-minilm", results
+              excluded = compare(query, order_id="missing", model=model)
+              assert excluded["keyword"] == excluded["vector"] == [], excluded
+          PY
+  browser-model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install headless browser
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Verify browser model
+        run: node tests/browser_model.mjs

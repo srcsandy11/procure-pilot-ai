@@ -1,0 +1,263 @@
+[
+  {
+    "name": "Confirmed split",
+    "partition": "development",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "feasible",
+    "evidence": "WH-1 v2",
+    "owner": "Sales"
+  },
+  {
+    "name": "Initial split awaiting consent",
+    "partition": "development",
+    "stage": "initial",
+    "plan": "SPLIT-B",
+    "verdict": "needs confirmation",
+    "evidence": "SO-1001",
+    "owner": "Sales"
+  },
+  {
+    "name": "Revised supplier arrival",
+    "partition": "development",
+    "stage": "revised",
+    "plan": "SPLIT-B",
+    "verdict": "infeasible",
+    "evidence": "QUOTE-B v2",
+    "owner": "Procurement"
+  },
+  {
+    "name": "Dispatch only",
+    "partition": "development",
+    "stage": "confirmed",
+    "plan": "DIRECT-A",
+    "verdict": "needs confirmation",
+    "evidence": "QUOTE-A v1",
+    "owner": "Procurement"
+  },
+  {
+    "name": "Certificate pending",
+    "partition": "development",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "needs confirmation",
+    "evidence": "QUOTE-B v1",
+    "owner": "Procurement",
+    "offers": {
+      "QUOTE-B": {
+        "certificate": null
+      }
+    }
+  },
+  {
+    "name": "Certificate refused",
+    "partition": "development",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "infeasible",
+    "evidence": "WH-1 v2",
+    "owner": "Procurement",
+    "offers": {
+      "WH-1": {
+        "certificate": false
+      }
+    }
+  },
+  {
+    "name": "Mismatched suffix",
+    "partition": "development",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "infeasible",
+    "evidence": "QUOTE-B v1",
+    "owner": "Procurement",
+    "offers": {
+      "QUOTE-B": {
+        "sku": "T20-H"
+      }
+    }
+  },
+  {
+    "name": "Wrong destination",
+    "partition": "development",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "infeasible",
+    "evidence": "WH-1 v2",
+    "owner": "Procurement",
+    "offers": {
+      "WH-1": {
+        "destination": "Cuttack"
+      }
+    }
+  },
+  {
+    "name": "Source unavailable",
+    "partition": "development",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "needs confirmation",
+    "evidence": "QUOTE-B",
+    "owner": "Procurement",
+    "offers": {
+      "QUOTE-B": null
+    }
+  },
+  {
+    "name": "Missing one unit",
+    "partition": "development",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "infeasible",
+    "evidence": "WH-1 v2",
+    "owner": "Procurement",
+    "offers": {
+      "WH-1": {
+        "available": 19
+      }
+    }
+  },
+  {
+    "name": "Dispatch after cutoff",
+    "partition": "development",
+    "stage": "confirmed",
+    "plan": "DIRECT-A",
+    "verdict": "infeasible",
+    "evidence": "QUOTE-A v1",
+    "owner": "Procurement",
+    "offers": {
+      "QUOTE-A": {
+        "dispatch": "2026-11-28T10:00:00+05:30"
+      }
+    }
+  },
+  {
+    "name": "Split refused",
+    "partition": "development",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "infeasible",
+    "evidence": "ACK-REFUSED",
+    "owner": "Sales",
+    "split": {
+      "allowed": false,
+      "evidence": "ACK-REFUSED"
+    }
+  },
+  {
+    "name": "Quote expired",
+    "partition": "development",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "needs confirmation",
+    "evidence": "QUOTE-B v1",
+    "owner": "Procurement",
+    "offers": {
+      "QUOTE-B": {
+        "valid_until": "2026-11-19T10:00:00+05:30"
+      }
+    }
+  },
+  {
+    "name": "Updated requested total",
+    "partition": "development",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "infeasible",
+    "evidence": "SO-1001",
+    "owner": "Procurement",
+    "order": {
+      "quantity": 110
+    }
+  },
+  {
+    "name": "Wrong unit",
+    "partition": "development",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "infeasible",
+    "evidence": "QUOTE-B v1",
+    "owner": "Procurement",
+    "offers": {
+      "QUOTE-B": {
+        "unit": "box"
+      }
+    }
+  },
+  {
+    "name": "Delivery at exact cutoff in UTC",
+    "partition": "acceptance",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "feasible",
+    "evidence": "WH-1 v2",
+    "owner": "Sales",
+    "offers": {
+      "WH-1": {
+        "arrival": "2026-11-27T11:30:00+00:00"
+      }
+    }
+  },
+  {
+    "name": "Delivery one minute after cutoff",
+    "partition": "acceptance",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "infeasible",
+    "evidence": "WH-1 v2",
+    "owner": "Procurement",
+    "offers": {
+      "WH-1": {
+        "arrival": "2026-11-27T11:31:00+00:00"
+      }
+    }
+  },
+  {
+    "name": "Certificate optional",
+    "partition": "acceptance",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "feasible",
+    "evidence": "QUOTE-B v1",
+    "owner": "Sales",
+    "order": {
+      "certificate_required": false
+    },
+    "offers": {
+      "QUOTE-B": {
+        "certificate": null
+      }
+    }
+  },
+  {
+    "name": "Known shortfall plus unknown certificate",
+    "partition": "acceptance",
+    "stage": "confirmed",
+    "plan": "SPLIT-B",
+    "verdict": "infeasible",
+    "evidence": "QUOTE-B v1",
+    "owner": "Procurement",
+    "offers": {
+      "QUOTE-B": {
+        "available": 79
+      },
+      "WH-1": {
+        "certificate": null
+      }
+    }
+  },
+  {
+    "name": "Direct arrival committed",
+    "partition": "acceptance",
+    "stage": "confirmed",
+    "plan": "DIRECT-A",
+    "verdict": "feasible",
+    "evidence": "QUOTE-A v1",
+    "owner": "Sales",
+    "offers": {
+      "QUOTE-A": {
+        "arrival": "2026-11-27T15:00:00+05:30"
+      }
+    }
+  }
+]

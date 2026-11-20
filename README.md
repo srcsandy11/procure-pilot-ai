@@ -1,97 +1,107 @@
 # Procure Pilot
 
-A distributor needs to decide whether it can deliver 100 calibrated T20 loggers to Bhubaneswar by 5 pm IST on 27 November. The first build replays three dated decisions. Each result includes a verdict, source revisions and the person responsible for the next action.
+Procure Pilot is a distributor workbench for deciding whether sales can promise a customer a delivery. Replay a fictional request for 100 calibrated T20 loggers in Bhubaneswar, trace the evidence behind two supply plans, review an allocation, and see what changes when the supplier revises its arrival date.
 
-## Run the first build
+## Open the workbench
 
-From this folder, using Python 3.10 or newer:
+Open `site/dist/index.html` directly, or serve the same files locally:
 
 ```sh
-python3 -m procure_pilot demo
-python3 -m procure_pilot demo --stage revised --json
+python3 -m http.server 8000 --directory site/dist
+```
+
+Open http://localhost:8000. The dashboard runs in the browser. Operational records are fictional. Lead discovery links to real public sources and labels prospective buyers as unqualified. Browser edits are stored in this browser profile. Opening the dashboard from another origin starts a separate workspace.
+
+| In the dashboard | What to try |
+|---|---|
+| Decision desk | Start at **Revised** and inspect the late 80-unit leg. Switch to **Initial** to see which two confirmations the split needs. Select **Confirmed**, approve the split and return to **Revised** to reopen the commitment. |
+| Action inbox | Filter by owner, inspect the evidence and record human review of the next action. |
+| Fulfilment | Compare the separate partial-delivery case's dispatch, receipt and customer count. Resolve the remaining 20 units using the evidence form. |
+| Document intelligence | Search dated quotes, exact-model datasheets and policies. Select the product and role, inspect source passages and review a draft. Scoped TF-IDF search runs on the device. On a hosted page, select **Download model and generate** to draft an editable reply from the matching records. |
+| Lead discovery | Switch between temperature loggers and corrugated boxes. Follow public evidence, record qualification notes, import CSV/JSON and export a qualified shortlist. |
+
+On-device drafting downloads Flan-T5 Small and its WebAssembly runtime on first use (about 110 MB). The browser sends the question and selected passages to a local worker. Review generated wording against the source records.
+
+The hosted dashboard uses a fixed export from the Python evaluator and independent browser state. For shared database transactions, the local model and restartable workflow, use the Python console below. Demo role selectors illustrate information routing. A deployment with real customer records would require authenticated identities and server-enforced permissions.
+
+## Run the local decision and support workflows
+
+Use Python 3.10 or newer for the dependency-free commands. For optional third-party services, use Python 3.12 in a virtual environment.
+
+```sh
+python3 -m procure_pilot demo --stage revised
+python3 -m procure_pilot.workflow
+python3 -m procure_pilot.intelligence 'confirmed arrival' --order SO-1001 --role procurement --model T20
+python3 -m procure_pilot.benchmark
 python3 -m unittest discover -s tests -v
 ```
 
-The default replay reads the fictional records in `data/demo.json`. Both this path and the PostgreSQL path call the same Python evaluator. The fixture makes the first exercise runnable without installing a service.
+The decision engine checks model, units, allocation totals, available quantities, destination, certification, split consent, quote validity and arrival time. The workflow records who approved, checks the current evidence again and tracks reservations. The support path keeps purchase orders, shipments, warehouse receipts, customer reports and customer-confirmed receipts separate. Closing a support case requires full confirmed receipt and named resolution.
 
-| Replay stage | Direct supplier A | Supplier B plus warehouse |
+| Evidence time (IST) | Direct supplier A, 100 | Supplier B, 80 + warehouse, 20 |
 |---|---|---|
-| Initial | Ask when all 100 arrive. A provided a dispatch date. | Ask sales about split delivery and procurement about arrival of 20 warehouse units. |
-| Confirmed | Arrival still unknown. | Feasible for review. B covers 80 and the warehouse covers 20 under confirmed terms. |
-| Revised | Arrival still unknown. | Infeasible under revised terms. B now expects 80 units to arrive after the customer deadline. |
+| 19 November 2026, noon | Dispatch known. Arrival needs confirmation. | Customer split consent and warehouse arrival outstanding. |
+| 20 November 2026, noon | Arrival still unknown. | Confirmed split meets the deadline. A human can approve it. |
+| 21 November 2026, noon | Arrival still unknown. | QUOTE-B v2 moves arrival to 30 November. The 80 units miss the 27 November deadline. |
 
-**Try one change.** In a working copy of the fixture, move the arrival on QUOTE-B revision 2 to 27 November at 16:59 IST and replay the revised stage. The split should become feasible. Move it to 17:01 and it should become infeasible. The earlier stages still use revision 1.
+To test the cutoff, edit `data/demo.json` in a working copy. Set QUOTE-B revision 2 arrival to 16:59 IST on 27 November and replay the revised stage. Change it to 17:01 to see the verdict change. Run `python3 -m procure_pilot.web_data` to refresh the static dashboard export after changing the fixture or rules.
 
-## Use the PostgreSQL path
+## Local PostgreSQL and interactive operator console
 
-With a running PostgreSQL server, Python and permission to create a dedicated demo database, use the following commands. The example connection URI assumes local authentication. Set DATABASE_URL to your own local demo database if needed.
+Use a dedicated empty PostgreSQL database. `init-db` creates its schema and inserts missing seed keys. The database account needs permission to create schema objects. For the optional vector search, install the pgvector extension on the PostgreSQL server and grant permission to enable it.
 
 ```sh
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.txt -r requirements-ui.txt
 createdb procure_pilot_demo
 export DATABASE_URL='postgresql:///procure_pilot_demo'
 python -m procure_pilot init-db
 python -m procure_pilot demo --store postgres
+streamlit run streamlit_app.py
+```
+
+The local Streamlit console calls the Python engine directly. Submit the confirmed split, record a named review, then select Revised and inspect Operations. PostgreSQL mode persists pending reviews, approvals, events, reservations and delivery observations. With DATABASE_URL unset, the console holds workflow state in the current Streamlit session. The command `python -m procure_pilot.workflow --store postgres` exercises the durable support and review workflow with sample events.
+
+For this small deployment, one workflow aggregate lives in a PostgreSQL JSONB row. Transactions lock the aggregate and supply tables while rechecking evidence and capacity. This serializes competing approvals. Use the SQL views in `sql/002_workflow.sql` for reporting. The dashboard and local database do not synchronize.
+
+## Local language model and durable human review
+
+Install the optional dependencies and start Ollama with a locally available instruction model. Set `OLLAMA_MODEL` to the installed tag. All model calls are explicit.
+
+```sh
+python -m pip install -r requirements-ai.txt
+ollama list
+python -m procure_pilot.intelligence 'Which arrival threatens the deadline?' --order SO-1001 --ollama-model "$OLLAMA_MODEL"
+```
+
+Compare PostgreSQL full-text search with exact pgvector cosine search over the same role-, order- and product-filtered passages. The default encoder produces a reproducible signed term-frequency vector. An installed Ollama embedding model enables a semantic comparison.
+
+```sh
+python -m procure_pilot.vector_search 'arrival' --role procurement --product T20
+python -m procure_pilot.vector_search 'arrival' --embedding-model "$OLLAMA_EMBEDDING_MODEL"
+```
+
+Run the following in **three separate processes** with the same DATABASE_URL to exercise LangGraph's PostgreSQL checkpointer. `start` pauses at human review. `status` reads the persisted thread. `resume` applies the review to the business record and advances the graph. Use a new thread ID for another exercise. A dedicated fresh database makes the approval example reproducible after prior commitments have reserved the order.
+
+```sh
+python -m procure_pilot.review_graph start --thread bhubaneswar-001
+python -m procure_pilot.review_graph status --thread bhubaneswar-001
+python -m procure_pilot.review_graph resume --thread bhubaneswar-001 --action approve --reviewer "Demo reviewer" --stage confirmed
+```
+
+Resume against `--stage revised` to see a previously feasible pending approval become stale. The application uses evidence time from the replay. A production decision would use the transaction's current business time.
+
+## Verification and scope
+
+`data/decision_cases.json` includes 20 fictional decision variants, five designated as fixed acceptance cases. The benchmark prints each result plus correct verdicts, decisive evidence references, next owners, false feasible decisions and feasible cases found. These measure the bounded scenarios in the repository. They do not measure outcomes on independent customer orders.
+
+The fixture-based unit suite runs without network access. PostgreSQL parity tests require a configured database:
+
+```sh
 PROCURE_TEST_POSTGRES=1 python -m unittest discover -s tests -v
 ```
 
-Run createdb once. The initialization command creates the procure_pilot schema and inserts missing seed keys in one transaction. Repeated initialization preserves existing rows. Use a fresh demo database to load an edited fixture with the same keys. No database credentials belong in source control.
+The concurrency and restart test additionally requires `PROCURE_TEST_WORKFLOW_RESET=1` and resets the workflow aggregate. Use a disposable test database for that option.
 
-## Whole system architecture
-
-Each box describes a responsibility inside one Python application or its PostgreSQL database. The CLI, schema, data readers, fixtures and decision rules are implemented in this build. The other boxes describe the next implementation stages.
-
-```mermaid
-flowchart TD
-    UI["Streamlit role views"] --> W["Request workflow in LangGraph"]
-    UI --> L["Supplier and buyer discovery"]
-    L --> S["PostgreSQL business records"]
-    W --> X["LangChain extraction and drafting"]
-    X --> M["Local Ollama model"]
-    X --> R["Scoped document retrieval"]
-    R --> V["Versioned passages and pgvector"]
-    W --> D["Python feasibility checks"]
-    S --> D
-    R --> D
-    D --> H{"Review decision"}
-    H -->|Clarify| I["Role inbox and replies"]
-    I --> W
-    H -->|Approve| A["Recheck facts and reserve stock"]
-    A --> S
-    S --> B["Support and BI views"]
-```
-
-| Boundary | Inputs | Outputs and responsibility |
-|---|---|---|
-| Discovery | Product, geography, supplier terms and buyer applications | Two evidence-backed lists with source URL, retrieval date and open qualification question. An analyst qualifies a lead before using it commercially. |
-| ERP simulation | Order lines, quote revisions, available stock, allocations, shipments, receipts | PostgreSQL supplies facts as of the decision time. A quote revision can affect several customer lines. |
-| Document intelligence | Datasheets, quote documents, policies, user identity and product model | Filter permitted document versions first. Retrieve with keyword search and compare with pgvector. LangChain and the local model return structured claims and passage references. |
-| Decision | Required fields and candidate allocations with source references | Python checks mandatory constraints. Return feasible, needs confirmation or infeasible, with evidence and next owner. |
-| Workflow | Request ID, decision revision, reviewer action or vendor reply | LangGraph checkpoints track where to resume. Business tables retain approvals. Recheck live terms and stock under a transaction before committing an approval. A unique action key makes retries safe. |
-| Support and analytics | Approved commitments, shipment/receipt observations, status events and audiences | Role-scoped replies, time waiting on each owner and commitments at risk. Customer-reported counts stay distinguishable from warehouse receipts. |
-
-## Step-by-step implementation
-
-| Step | Build | Done when |
-|---|---|---|
-| 1. Seed one order and read its facts | **Implemented.** PostgreSQL schema and idempotent seed loader. A fixture reader supports a dependency-free replay. | At each simulated time, queries return the applicable supplier and warehouse revisions and the latest split decision. Live PostgreSQL parity requires a running server. |
-| 2. Decide and explain | **Baseline implemented.** Evaluate two explicit allocations against model, unit, quantity, destination, certificate, quote validity, split consent and arrival cutoff. | The same 80+20 plan changes verdict across three stages. The revision names the 80 affected units. |
-| 3. Add persistent human review | Build a manual review view first. Persist a versioned decision, named reviewer, reservations, action key and role-specific inbox event in one transaction. | Duplicate approval creates one message. Two concurrent requests cannot reserve the same units. A changed quote invalidates a pending approval. |
-| 4. Add lead discovery | Build separate product-specific supplier and buyer query templates, public URL/CSV intake, evidence, qualification and deduplication. Begin with logger suppliers and cold-chain businesses. Repeat with shipping boxes. | Two supplier and two buyer leads each have a supporting passage and qualification question. Quotes use fictional companies. |
-| 5. Add RAG and structured extraction | Ingest two similar-model datasheets, two fictional quotes and one policy. Preserve version, model, section and visibility. Extract matching fields using LangChain and a local model. Compare keyword and vector retrieval. | An exact-model question cites the correct passage. A missing certificate or commercial term produces a targeted question. |
-| 6. Connect LangGraph and support | Wrap working functions in a resumable workflow. Add vendor replies, order-line dependencies, impact checks, shipments, receipts and human-reviewed messages. | Restart while waiting for approval. Change a supplier date. Reopen affected promises and route actions. Resolve a separate partial-delivery case. |
-| 7. Evaluate and show the outcome | Add the at-risk queue and SQL metrics. Label 20 business cases, reserve five for final evaluation, record source accuracy, false promises and correctly identified feasible cases. | A fresh demo run is reproducible, includes a rejected promise and shows how a person corrects it. Publish only measured results. |
-
-### What the current decision means
-
-This first slice evaluates explicit candidates in a single-item, common-unit scenario. Warehouse availability is a dated seeded observation. The verdict covers the checks listed in step 2. Commercial budget, minimum order quantities, numeric product tolerances, inventory reservation and customer-facing approval belong in later increments. The terminal's feasible result is a recommendation for review. Replaying revisions demonstrates impact on the supplied candidates; an automatic notification after a real update requires step 6.
-
-### Code reading order
-
-1. Read the customer request, candidate legs and successive evidence in `data/demo.json`.
-2. Read `procure_pilot/decision.py`. Follow a single leg from quantity through to arrival.
-3. Compare the readers in `procure_pilot/store.py` with `sql/001_baseline.sql`. One PostgreSQL read transaction gives a consistent snapshot.
-4. Use `procure_pilot/__main__.py` to replay the story and `tests/test_decision.py` to inspect the expected decisions.
-5. Open `Procure-Pilot-Project-Plan.md` for the commercial use case, discovery sources, evaluation design and learning milestones.
+Arbitrary multi-line orders, numeric product tolerances, purchase budgets, MOQ optimization, authenticated multi-tenant access, live ERP integration and sending external messages are outside this demonstration. Lead qualifications and model-produced wording are for human review. For the original project scope, business story and study sequence, see [the project plan](Procure-Pilot-Project-Plan.md).

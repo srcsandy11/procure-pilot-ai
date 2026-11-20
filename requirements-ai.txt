@@ -1,0 +1,5 @@
+# Optional: the offline retrieval and drafting tools need no extra packages.
+langchain-core>=0.3,<2
+langchain-ollama>=0.3,<2
+langgraph>=1.0,<2
+langgraph-checkpoint-postgres>=3,<4
