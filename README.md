@@ -4,7 +4,7 @@ Procure Pilot is a distributor workbench for deciding whether sales can promise 
 
 ## Open the workbench
 
-Open `site/dist/index.html` directly, or serve the same files locally:
+Open the [hosted workbench](https://procure-pilot-workbench.dash-sandykumar.chatgpt.site) while signed in to the site owner’s account. For local use, open `site/dist/index.html` directly or serve the same files:
 
 ```sh
 python3 -m http.server 8000 --directory site/dist

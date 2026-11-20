@@ -129,7 +129,12 @@
         start.textContent = "Generate another draft";
         finish(useful ? "On-device draft is ready for review." : "The model returned an incomplete reply. A source-based fallback is ready for review.");
       }
-      if (data.kind === "empty") finish("The model returned an empty draft. Try a more specific question or use the evidence draft above.");
+      if (data.kind === "empty") {
+        output.value = fallback;
+        sources.textContent = `Source records provided to the model: ${sourceIds.join(", ")}.`;
+        result.hidden = false;
+        finish("The model returned an empty reply. A source-based fallback is ready for review.");
+      }
       if (data.kind === "error") fail();
     }
 
