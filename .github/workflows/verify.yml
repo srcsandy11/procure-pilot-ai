@@ -66,7 +66,7 @@ jobs:
             docker logs procure-ollama
             exit 1
           }
-          docker exec procure-ollama ollama pull qwen2.5:0.5b
+          docker exec procure-ollama ollama pull qwen2.5:3b
           docker exec procure-ollama ollama pull all-minilm
       - name: Verify local model generation, structured extraction, and pgvector
         run: |
@@ -77,11 +77,11 @@ jobs:
           question = "What is the customer split approval?"
           context = retrieve(question, "SO-1001", limit=1)
           assert [doc["id"] for doc in context] == ["CUSTOMER-ACK-1"], context
-          answer = ollama_answer(question, context, "qwen2.5:0.5b")
+          answer = ollama_answer(question, context, "qwen2.5:3b")
           assert isinstance(answer, str) and answer.strip(), answer
 
           source = "Order SO-1001 requests quantity: 80 units."
-          terms = structured_extract(source, "qwen2.5:0.5b")
+          terms = structured_extract(source, "qwen2.5:3b")
           assert set(terms) == {"order_id", "model", "quantity", "arrival", "certificate"}, terms
           assert any((terms[key] or {}).get("value") == expected for key, expected in
                      (("order_id", "SO-1001"), ("quantity", "80"))), terms
